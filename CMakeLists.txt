@@ -7,4 +7,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(concurrent-kv
     src/main.cpp
+    src/store/kv_store.cpp
 )
