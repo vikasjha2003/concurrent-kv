@@ -1,71 +1,37 @@
 #include <iostream>
 #include "store/kv_store.hpp"
+#include "command/command_processor.hpp"
 
 int main() {
+
     KVStore store;
+    CommandProcessor processor(store);
 
-    // 1. Initially empty
-    std::cout << "Initial size: " << store.size() << '\n';
+    std::cout << processor.process("PING") << '\n';
 
-    // 2. Set a new key
-    store.set("name", "Vikas");
-    store.set("language", "C++");
+    std::cout << processor.process("SET name Vikas") << '\n';
 
-    std::cout << "Size after adding 2 keys: "
-              << store.size() << '\n';
+    std::cout << processor.process("GET name") << '\n';
 
-    // 3. Get an existing key
-    auto name = store.get("name");
+    std::cout << processor.process("EXISTS name") << '\n';
 
-    if (name) {
-        std::cout << "name: " << *name << '\n';
-    } else {
-        std::cout << "name not found\n";
-    }
+    std::cout << processor.process("GET age") << '\n';
 
-    // 4. Get a key that doesn't exist
-    auto age = store.get("age");
+    std::cout << processor.process("DEL name") << '\n';
 
-    if (age) {
-        std::cout << "age: " << *age << '\n';
-    } else {
-        std::cout << "age not found\n";
-    }
+    std::cout << processor.process("EXISTS name") << '\n';
 
-    // 5. Check contains()
-    std::cout << "Contains 'name': "
-              << (store.contains("name") ? "yes" : "no")
-              << '\n';
+    std::cout << processor.process("DEL name") << '\n';
 
-    std::cout << "Contains 'age': "
-              << (store.contains("age") ? "yes" : "no")
-              << '\n';
+    std::cout << processor.process("SET foo") << '\n';
 
-    // 6. Update an existing key
-    store.set("name", "Rahul");
+    std::cout << processor.process("GET") << '\n';
 
-    auto updatedName = store.get("name");
+    std::cout << processor.process("FOO bar") << '\n';
 
-    if (updatedName) {
-        std::cout << "Updated name: " << *updatedName << '\n';
-    }
+    std::cout << processor.process("") << '\n';
 
-    // 7. Delete an existing key
-    bool deleted = store.del("language");
-
-    std::cout << "Deleted 'language': "
-              << (deleted ? "yes" : "no")
-              << '\n';
-
-    // 8. Try deleting a key that doesn't exist
-    deleted = store.del("age");
-
-    std::cout << "Deleted 'age': "
-              << (deleted ? "yes" : "no")
-              << '\n';
-
-    // 9. Final state
-    std::cout << "Final size: " << store.size() << '\n';
+    std::cout << processor.process("PING hello") << '\n';
 
     return 0;
 }
