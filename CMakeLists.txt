@@ -9,4 +9,5 @@ add_executable(concurrent-kv
     src/main.cpp
     src/store/kv_store.cpp
     src/command/command_processor.cpp
+    src/server/tcp_server.cpp
 )
