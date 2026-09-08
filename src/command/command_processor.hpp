@@ -14,12 +14,13 @@ public:
     /*
      * Response convention:
      *
-     * SET key value  -> "OK"
-     * GET key        -> "VALUE <value>" or "NIL"
-     * DEL key        -> "OK" or "NIL"
-     * EXISTS key     -> "VALUE 1" or "VALUE 0"
-     * PING           -> "PONG"
-     * Invalid input  -> "ERR <reason>"
+     * SET key value       -> "OK"
+     * GET key             -> "VALUE <value>" or "NIL"
+     * DEL key             -> "OK" or "NIL"
+     * EXISTS key          -> "VALUE 1" or "VALUE 0"
+     * EXPIRE key seconds  -> "VALUE 1" or "VALUE 0"
+     * PING                -> "PONG"
+     * Invalid input       -> "ERR <reason>"
      *
      * Values returned by GET are always prefixed with "VALUE",
      * so they cannot be confused with response keywords.
@@ -31,6 +32,7 @@ private:
     std::string handleGet(const std::vector<std::string>& args);
     std::string handleDel(const std::vector<std::string>& args);
     std::string handleExists(const std::vector<std::string>& args);
+    std::string handleExpire(const std::vector<std::string>& args);
     std::string handlePing(const std::vector<std::string>& args);
 
     KVStore& store_;

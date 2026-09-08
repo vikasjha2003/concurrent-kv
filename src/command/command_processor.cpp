@@ -1,6 +1,8 @@
 #include "command_processor.hpp"
 
+#include <chrono>
 #include <sstream>
+#include <stdexcept>
 
 CommandProcessor::CommandProcessor(KVStore& store)
     : store_(store) {
@@ -19,6 +21,10 @@ CommandProcessor::CommandProcessor(KVStore& store)
 
     handlers_["EXISTS"] = [this](const auto& args) {
         return handleExists(args);
+    };
+
+    handlers_["EXPIRE"] = [this](const auto& args) {
+        return handleExpire(args);
     };
 
     handlers_["PING"] = [this](const auto& args) {
@@ -107,6 +113,35 @@ std::string CommandProcessor::handleExists(
     }
 
     return store_.contains(args[0])
+        ? "VALUE 1"
+        : "VALUE 0";
+}
+
+std::string CommandProcessor::handleExpire(
+    const std::vector<std::string>& args) {
+
+    if (args.size() != 2) {
+        return "ERR EXPIRE requires key and seconds";
+    }
+
+    long long seconds;
+
+    try {
+        seconds = std::stoll(args[1]);
+    }
+    catch (const std::invalid_argument&) {
+        return "ERR EXPIRE seconds must be an integer";
+    }
+    catch (const std::out_of_range&) {
+        return "ERR EXPIRE seconds out of range";
+    }
+
+    bool success = store_.expire(
+        args[0],
+        std::chrono::seconds(seconds)
+    );
+
+    return success
         ? "VALUE 1"
         : "VALUE 0";
 }
