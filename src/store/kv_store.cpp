@@ -1,5 +1,26 @@
 #include "kv_store.hpp"
 
+KVStore::KVStore(std::chrono::milliseconds sweep_interval)
+    : sweep_interval_(sweep_interval) {
+
+    // Start the background sweeper only after all other members
+    // are constructed, since the thread body touches store_ and
+    // the mutexes.
+    sweeper_ = std::thread(&KVStore::activeExpirationLoop, this);
+}
+
+KVStore::~KVStore() {
+    stop_.store(true);
+
+    // Wake the sweeper immediately rather than waiting out its
+    // current sleep interval.
+    cv_.notify_all();
+
+    if (sweeper_.joinable()) {
+        sweeper_.join();
+    }
+}
+
 void KVStore::set(
     const std::string& key,
     const std::string& value
@@ -114,4 +135,36 @@ bool KVStore::isExpired(const Entry& entry) const {
 
     return std::chrono::steady_clock::now() >=
            entry.expires_at.value();
+}
+
+void KVStore::activeExpirationLoop() {
+
+    while (!stop_.load()) {
+
+        {
+            std::unique_lock<std::mutex> cv_lock(cv_mutex_);
+
+            // Sleep until either sweep_interval_ elapses, or
+            // stop_ becomes true (destructor calls notify_all()).
+            cv_.wait_for(
+                cv_lock,
+                sweep_interval_,
+                [this] { return stop_.load(); }
+            );
+        }
+
+        if (stop_.load()) {
+            break;
+        }
+
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        for (auto it = store_.begin(); it != store_.end();) {
+            if (isExpired(it->second)) {
+                it = store_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
 }
