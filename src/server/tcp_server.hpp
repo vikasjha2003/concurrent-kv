@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <thread>
 
 #include "../command/command_processor.hpp"
 
@@ -11,6 +12,8 @@ public:
     void run();
 
 private:
+    void handleClient(int client_fd);
+
     std::uint16_t port_;
     CommandProcessor& processor_;
 };
