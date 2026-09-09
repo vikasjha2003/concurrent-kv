@@ -5,9 +5,15 @@ project(concurrent-kv)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Main KV server
 add_executable(concurrent-kv
     src/main.cpp
     src/store/kv_store.cpp
     src/command/command_processor.cpp
     src/server/tcp_server.cpp
+)
+
+# Benchmark client
+add_executable(bench
+    src/bench/bench.cpp
 )
