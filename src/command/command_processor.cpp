@@ -7,38 +7,20 @@
 CommandProcessor::CommandProcessor(KVStore& store)
     : store_(store) {
 
-    handlers_["SET"] = [this](const auto& args) {
-        return handleSet(args);
-    };
-
-    handlers_["GET"] = [this](const auto& args) {
-        return handleGet(args);
-    };
-
-    handlers_["DEL"] = [this](const auto& args) {
-        return handleDel(args);
-    };
-
-    handlers_["EXISTS"] = [this](const auto& args) {
-        return handleExists(args);
-    };
-
-    handlers_["EXPIRE"] = [this](const auto& args) {
-        return handleExpire(args);
-    };
-
-    handlers_["PING"] = [this](const auto& args) {
-        return handlePing(args);
-    };
+    handlers_["SET"]    = [this](const auto& args) { return handleSet(args); };
+    handlers_["GET"]    = [this](const auto& args) { return handleGet(args); };
+    handlers_["DEL"]    = [this](const auto& args) { return handleDel(args); };
+    handlers_["EXISTS"] = [this](const auto& args) { return handleExists(args); };
+    handlers_["EXPIRE"] = [this](const auto& args) { return handleExpire(args); };
+    handlers_["SAVE"]   = [this](const auto& args) { return handleSave(args); };
+    handlers_["PING"]   = [this](const auto& args) { return handlePing(args); };
 }
 
 std::string CommandProcessor::process(const std::string& input_line) {
-
     std::istringstream stream(input_line);
 
     std::vector<std::string> tokens;
     std::string token;
-
     while (stream >> token) {
         tokens.push_back(token);
     }
@@ -48,14 +30,9 @@ std::string CommandProcessor::process(const std::string& input_line) {
     }
 
     const std::string& command = tokens[0];
-
-    std::vector<std::string> args(
-        tokens.begin() + 1,
-        tokens.end()
-    );
+    std::vector<std::string> args(tokens.begin() + 1, tokens.end());
 
     auto it = handlers_.find(command);
-
     if (it == handlers_.end()) {
         return "ERR unknown command";
     }
@@ -63,95 +40,51 @@ std::string CommandProcessor::process(const std::string& input_line) {
     return it->second(args);
 }
 
-std::string CommandProcessor::handleSet(
-    const std::vector<std::string>& args) {
-
-    if (args.size() != 2) {
-        return "ERR SET requires key and value";
-    }
-
+std::string CommandProcessor::handleSet(const std::vector<std::string>& args) {
+    if (args.size() != 2) return "ERR SET requires key and value";
     store_.set(args[0], args[1]);
-
     return "OK";
 }
 
-std::string CommandProcessor::handleGet(
-    const std::vector<std::string>& args) {
-
-    if (args.size() != 1) {
-        return "ERR GET requires key";
-    }
-
+std::string CommandProcessor::handleGet(const std::vector<std::string>& args) {
+    if (args.size() != 1) return "ERR GET requires key";
     auto value = store_.get(args[0]);
-
-    if (!value) {
-        return "NIL";
-    }
-
+    if (!value) return "NIL";
     return "VALUE " + *value;
 }
 
-std::string CommandProcessor::handleDel(
-    const std::vector<std::string>& args) {
-
-    if (args.size() != 1) {
-        return "ERR DEL requires key";
-    }
-
-    if (store_.del(args[0])) {
-        return "OK";
-    }
-
-    return "NIL";
+std::string CommandProcessor::handleDel(const std::vector<std::string>& args) {
+    if (args.size() != 1) return "ERR DEL requires key";
+    return store_.del(args[0]) ? "OK" : "NIL";
 }
 
-std::string CommandProcessor::handleExists(
-    const std::vector<std::string>& args) {
-
-    if (args.size() != 1) {
-        return "ERR EXISTS requires key";
-    }
-
-    return store_.contains(args[0])
-        ? "VALUE 1"
-        : "VALUE 0";
+std::string CommandProcessor::handleExists(const std::vector<std::string>& args) {
+    if (args.size() != 1) return "ERR EXISTS requires key";
+    return store_.contains(args[0]) ? "VALUE 1" : "VALUE 0";
 }
 
-std::string CommandProcessor::handleExpire(
-    const std::vector<std::string>& args) {
-
-    if (args.size() != 2) {
-        return "ERR EXPIRE requires key and seconds";
-    }
+std::string CommandProcessor::handleExpire(const std::vector<std::string>& args) {
+    if (args.size() != 2) return "ERR EXPIRE requires key and seconds";
 
     long long seconds;
-
     try {
         seconds = std::stoll(args[1]);
-    }
-    catch (const std::invalid_argument&) {
+    } catch (const std::invalid_argument&) {
         return "ERR EXPIRE seconds must be an integer";
-    }
-    catch (const std::out_of_range&) {
+    } catch (const std::out_of_range&) {
         return "ERR EXPIRE seconds out of range";
     }
 
-    bool success = store_.expire(
-        args[0],
-        std::chrono::seconds(seconds)
-    );
-
-    return success
-        ? "VALUE 1"
-        : "VALUE 0";
+    bool success = store_.expire(args[0], std::chrono::seconds(seconds));
+    return success ? "VALUE 1" : "VALUE 0";
 }
 
-std::string CommandProcessor::handlePing(
-    const std::vector<std::string>& args) {
+std::string CommandProcessor::handleSave(const std::vector<std::string>& args) {
+    if (!args.empty()) return "ERR SAVE takes no arguments";
+    return store_.saveToFile() ? "OK" : "ERR could not write snapshot file";
+}
 
-    if (!args.empty()) {
-        return "ERR PING takes no arguments";
-    }
-
+std::string CommandProcessor::handlePing(const std::vector<std::string>& args) {
+    if (!args.empty()) return "ERR PING takes no arguments";
     return "PONG";
 }
